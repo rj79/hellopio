@@ -1,5 +1,22 @@
 #include <Arduino.h>
 
+#ifndef DISABLE_SERIAL
+void dbg_serial_println(const char* fmt, ...)
+{
+    char buffer[256];
+    va_list args;
+    va_start(args, fmt);
+    int rc = vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+    Serial.print(buffer);
+}
+#define PRINT(...) { dbg_serial_println(__VA_ARGS__); }
+#define FLUSH() { Serial.flush(); }
+#else
+#define PRINT(...) ;
+#define FLUSH(...) ;
+#endif // ifdef SERIAL_DEBUG
+
 #undef RGB_BUILTIN
 #ifdef RGB_BUILTIN
 #include <Adafruit_NeoPixel.h>
@@ -29,25 +46,19 @@ void setup()
         delay(1000);
     };
     delay(2000);
-    Serial.println();
-    Serial.flush();
-    Serial.println("\nBlink setup()");
+    PRINT("\n")
+    FLUSH();
+    PRINT("\nBlink setup()\n");
     #endif
+
     #ifndef RGB_BUILTIN
-    #ifndef DISABLE_SERIAL
-    Serial.print("LED_PIN=");
-    Serial.println(LED_PIN);
-    #endif
+    PRINT("LED_PIN=%d\n", LED_PIN);
     pinMode(LED_PIN, OUTPUT);
     #else
-    #ifndef DISABLE_SERIAL
-    Serial.print("RGB_BUILTIN=");
-    Serial.println(RGB_BUILTIN);
-    Serial.print("RGB_POWER=");
-    Serial.println(RGB_POWER);
-    Serial.print("RGB_DATA=");
-    Serial.println(RGB_DATA);
-    #endif
+    PRINT("RGB_BUILTIN=%d\n", RGB_BUILTIN);
+    PRINT("RGB_POWER=%d\n", RGB_POWER);
+    PRINT("RGB_DATA=%d\n", RGB_DATA);
+
     pinMode(RGB_POWER, OUTPUT);
     pinMode(RGB_DATA, OUTPUT);
     digitalWrite(RGB_POWER, HIGH);
@@ -56,21 +67,16 @@ void setup()
 }
 
 void led_toggle() {
-    #ifndef DISABLE_SERIAL
-    Serial.print("Toggle ");
-    Serial.print(Value);
-    #endif
+    PRINT("Toggle %d\n", Value);
     Value = !Value;
     digitalWrite(LED_PIN, Value);
 }
 
 #ifdef RGB_BUILTIN
 void rgb_toggle () 
-{
-    #ifndef DISABLE_SERIAL
-    Serial.print("RgbState ");
-    Serial.print(RgbState);
-    #endif
+{    
+    PRINT("RgbState %d\n", RgbState);
+ 
     if (RgbState == 0) {
         neopixelWrite(RGB_DATA, 0, 255, 0);
         RgbState = 1;
@@ -89,17 +95,11 @@ void rgb_toggle ()
 void loop()
 {
     if (millis() >= NextChange) {
-        #ifndef DISABLE_SERIAL
-        Serial.print(NextChange);
-        Serial.print(": ");
-        #endif
+        PRINT("%d: ", NextChange);
         #ifndef RGB_BUILTIN
         led_toggle();
         #else
         rgb_toggle();
-        #endif
-        #ifndef DISABLE_SERIAL
-        Serial.println();
         #endif
         NextChange += 1000;
     }
